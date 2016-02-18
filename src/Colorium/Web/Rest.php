@@ -62,31 +62,40 @@ class Rest extends Kernel
 
 
     /**
+     * Generate context
+     *
+     * @return Context
+     */
+    public function context()
+    {
+        $this->logger->debug('kernel.context: generate Context instance');
+
+        $request = Request::globals();
+        $response = new Response;
+        return new Context($request, $response);
+    }
+
+
+    /**
      * Handle context
      *
      * @param Context $context
-     * @param string $logic
      * @return Context
      *
      * @throws AccessDeniedException
      * @throws NotFoundException
      * @throws NotImplementedException
      */
-    public function proceed(Context $context = null, $logic = null)
+    public function proceed(Context $context)
     {
         // generate context
         $context = $context ?: $this->context();
-        $context->forwarder = $context->forwarder ?: [$this, __METHOD__];
-
-        // forward to logic
-        if($logic) {
-            $context->logic = $this->logic($logic);
-        }
+        $context->forwarder = $context->forwarder ?: [$this, 'forward'];
 
         // processes
         $context = $this->route($context);
-        $context = $this->guard($context);
         $context = $this->resolve($context);
+        $context = $this->guard($context);
         $context = $this->execute($context);
         $context = $this->render($context);
 
@@ -95,17 +104,22 @@ class Rest extends Kernel
 
 
     /**
-     * Generate context
+     * Forward to logic
      *
+     * @param Context $context
+     * @param $logic
      * @return Context
      */
-    protected function context()
+    public function forward(Context $context, $logic)
     {
-        $this->logger->debug('kernel.context: generate Context instance');
+        if(!$logic instanceof Logic) {
+            $logic = is_callable($logic)
+                ? Logic::resolve(uniqid(), $logic) // ephemeral runtime logic
+                : $this->logic($logic);            // stored logic
+        }
 
-        $request = Request::globals();
-        $response = new Response;
-        return new Context($request, $response);
+        $context->logic = $logic;
+        return $this->proceed($context);
     }
 
 
@@ -147,6 +161,35 @@ class Rest extends Kernel
 
 
     /**
+     * Resolve logic method
+     *
+     * @param Context $context
+     * @return Context
+     *
+     * @throws NotImplementedException
+     */
+    protected function resolve(Context $context)
+    {
+        $this->logger->debug('kernel.resolve: logic method resolving');
+
+        // resolve invokable
+        if(!$context->logic->method instanceof \Closure and !$context->logic->method instanceof Invokable) {
+            $invokable = Resolver::of($context->logic->method);
+            if(!$invokable) {
+                throw new NotImplementedException('Invalid method for logic [' . $context->logic->name . ']');
+            }
+
+            $context->logic->method = $invokable;
+            $context->logic->override($invokable->annotations());
+
+            $this->logger->debug('kernel.resolve: logic [' . $context->logic->name . '] method resolved');
+        }
+
+        return $context;
+    }
+
+
+    /**
      * Check access
      *
      * @param Context $context
@@ -169,33 +212,6 @@ class Rest extends Kernel
         }
 
         $this->logger->debug('kernel.guard: access granted (logic: ' . $context->logic->access . ', user: ' . $context->logic->access . ')');
-
-        return $context;
-    }
-
-
-    /**
-     * Resolve logic method
-     *
-     * @param Context $context
-     * @return Context
-     *
-     * @throws NotImplementedException
-     */
-    protected function resolve(Context $context)
-    {
-        $this->logger->debug('kernel.resolve: logic method resolving');
-
-        // resolve invokable
-        if(!$context->logic->method instanceof \Closure and !$context->logic->method instanceof Invokable) {
-            $invokable = Resolver::of($context->logic->method);
-            if(!$invokable) {
-                throw new NotImplementedException('Invalid method for logic [' . $context->logic->name . ']');
-            }
-
-            $context->logic->method = $invokable;
-            $this->logger->debug('kernel.resolve: logic [' . $context->logic->name . '] method resolved');
-        }
 
         return $context;
     }
@@ -226,6 +242,7 @@ class Rest extends Kernel
         }
         // raw response
         else {
+            $context->response->raw = true;
             $context->response->content = $result;
             $this->logger->debug('kernel.execute: raw content provided as result of execution');
         }
@@ -253,7 +270,7 @@ class Rest extends Kernel
                 $this->logger->debug('kernel.render: json response generated');
             }
 
-            $context->reponse->raw = false;
+            $context->response->raw = false;
         }
 
         return $context;

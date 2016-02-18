@@ -20,7 +20,7 @@ class Logic extends \stdClass
     public $render = 'text';
 
     /** @var string */
-    public $view;
+    public $html;
 
     /** @var callable */
     public $method;
@@ -35,9 +35,24 @@ class Logic extends \stdClass
     public function __construct($name, array $specs = [])
     {
         $this->name = $name;
+        $this->override($specs);
+    }
+
+
+    /**
+     * Override data
+     *
+     * @param array $specs
+     * @return $this
+     */
+    public function override(array $specs)
+    {
+        unset($specs['param'], $specs['return'], $specs['throws']);
         foreach($specs as $key => $value) {
             $this->$key = $value;
         }
+
+        return $this;
     }
 
 
@@ -52,12 +67,6 @@ class Logic extends \stdClass
     {
         $invokable = Resolver::of($callable);
         $annotations = $invokable->annotations();
-        unset(
-            $annotations['param'],
-            $annotations['return'],
-            $annotations['throws'],
-            $annotations['method']
-        );
         $annotations['method'] = $invokable;
 
         return new Logic($name, $annotations);

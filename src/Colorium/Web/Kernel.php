@@ -45,14 +45,17 @@ abstract class Kernel
         try {
             try {
                 $this->logger->debug('kernel: start');
+                if(!$context) {
+                    $context = $this->context();
+                }
                 return $this->proceed($context);
             }
             catch(HttpException $event) {
-                return $this->event($context, $event);
+                return $this->event($event, $context);
             }
         }
         catch(\Exception $error) {
-            return $this->error($context, $error);
+            return $this->error($error, $context);
         }
         finally {
             $this->terminate($context);
@@ -62,30 +65,37 @@ abstract class Kernel
 
 
     /**
+     * Generate Context instance
+     *
+     * @return Context
+     */
+    abstract public function context();
+
+
+    /**
      * Handle context
      *
      * @param Context $context
      * @return Context
      */
-    abstract protected function proceed(Context $context);
+    abstract public function proceed(Context $context);
 
 
     /**
      * Handle http event
      *
-     * @param Context $context
      * @param HttpException $event
+     * @param Context $context
      * @return Context
      *
      * @throws HttpException
      */
-    protected function event(Context $context, HttpException $event)
+    protected function event(HttpException $event, Context $context = null)
     {
         $code = $event->getCode();
         if(isset($this->events[$code])) {
             $this->logger->debug('kernel.event: http ' . $code . ' event raised, has callback');
-            $context->forward($this->events[$code]);
-            return $this->proceed($context);
+            return $context->forward($this->events[$code]);
         }
 
         $this->logger->debug('kernel.event: http ' . $code . ' event raised, no callback');
@@ -96,21 +106,20 @@ abstract class Kernel
     /**
      * Handle exception
      *
-     * @param Context $context
      * @param \Exception $error
+     * @param Context $context
      * @return Context
      *
      * @throws \Exception
      */
-    protected function error(Context $context, \Exception $error)
+    protected function error(\Exception $error, Context $context = null)
     {
         $exception = get_class($error);
         $this->logger->error($error);
         foreach($this->errors as $class => $callback) {
             if(is_string($class) and $exception instanceof $class) {
                 $this->logger->debug('kernel.error: ' . $exception . ' raised, has callback');
-                $context->forward($callback);
-                return $this->proceed($context);
+                return $context->forward($callback);
             }
         }
 
@@ -124,6 +133,6 @@ abstract class Kernel
      *
      * @param Context $context
      */
-    protected function terminate(Context $context) {}
+    protected function terminate(Context $context = null) {}
 
 }

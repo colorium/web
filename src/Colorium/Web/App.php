@@ -36,13 +36,25 @@ class App extends Rest
     {
         $this->logger->debug('kernel.process.render: render Response');
 
+        // prepare templater helpers and globals vars
+        $this->templater->vars['ctx'] = $context;
+        $this->templater->helpers['url'] = [$context, 'url'];
+        $this->templater->helpers['call'] = [$context, 'forward'];
+
         // resolve output format
         if($context->response->raw) {
 
             // template
-            if($template = $context->logic->view) {
-                $content = $this->templater->render($template, $context->response->content);
+            if($template = $context->logic->html) {
+
+                $vars = $context->response->content;
+                if(!is_array($vars)) {
+                    $vars = (array)$vars;
+                }
+
+                $content = $this->templater->render($template, $vars);
                 $context->response->content = $content;
+                $context->response->format = 'text/html';
                 $this->logger->debug('kernel.process.render: template "' . $template . '" compiled');
             }
             // json
@@ -51,7 +63,7 @@ class App extends Rest
                 $this->logger->debug('kernel.process.render: json response generated');
             }
 
-            $context->reponse->raw = false;
+            $context->response->raw = false;
         }
 
         // template response

@@ -106,10 +106,19 @@ class Context extends \stdClass
     public function __clone()
     {
         $this->request = clone $this->request;
-        $this->route = clone $this->route;
-        $this->logic = clone $this->logic;
-        $this->user = clone $this->user;
         $this->response = clone $this->response;
+
+        if($this->route) {
+            $this->route = clone $this->route;
+        }
+
+        if($this->logic) {
+            $this->logic = clone $this->logic;
+        }
+
+        if(is_object($this->user)) {
+            $this->user = clone $this->user;
+        }
     }
 
 }
