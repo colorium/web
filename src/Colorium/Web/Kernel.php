@@ -5,7 +5,7 @@ namespace Colorium\Web;
 use Colorium\Http\Error\HttpException;
 use Psr\Log;
 
-abstract class Kernel
+abstract class Kernel extends \stdClass
 {
 
     /** @var array */
@@ -26,7 +26,14 @@ abstract class Kernel
     public function __construct(Log\LoggerInterface $logger = null)
     {
         $this->logger = $logger ?: new Log\NullLogger;
+        $this->setup();
     }
+
+
+    /**
+     * Setup app
+     */
+    protected function setup() {}
 
 
     /**
@@ -48,6 +55,8 @@ abstract class Kernel
                 if(!$context) {
                     $context = $this->context();
                 }
+                $this->before($context);
+                $context->logger = $this->logger;
                 return $this->proceed($context);
             }
             catch(HttpException $event) {
@@ -58,7 +67,7 @@ abstract class Kernel
             return $this->error($error, $context);
         }
         finally {
-            $this->terminate($context);
+            $this->after($context);
             $this->logger->debug('kernel: end (' . number_format(microtime(true) - $start, 4) . 's)');
         }
     }
@@ -70,6 +79,14 @@ abstract class Kernel
      * @return Context
      */
     abstract public function context();
+
+
+    /**
+     * Before handler
+     *
+     * @param Context $context
+     */
+    protected function before(Context $context) {}
 
 
     /**
@@ -129,10 +146,10 @@ abstract class Kernel
 
 
     /**
-     * Terminate handler
+     * After handler
      *
      * @param Context $context
      */
-    protected function terminate(Context $context = null) {}
+    protected function after(Context $context = null) {}
 
 }

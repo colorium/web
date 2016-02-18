@@ -28,18 +28,10 @@ class Rest extends Kernel
      *
      * @param array $logics
      */
-    public function __construct(array $logics)
+    public function __construct(array $logics = [])
     {
         $this->router = new Router;
-
-        foreach($logics as $name => $specs) {
-            $this->logics[$name] = is_callable($specs)
-                ? Logic::resolve($name, $specs)
-                : new Logic($name, $specs);
-            if($this->logics[$name]->http) {
-                $this->router->add($this->logics[$name]->http, $this->logics[$name]);
-            }
-        }
+        $this->merge($logics);
 
         parent::__construct();
     }
@@ -58,6 +50,43 @@ class Rest extends Kernel
         }
 
         return $this->logics[$name];
+    }
+
+
+    /**
+     * Add logic
+     *
+     * @param string $name
+     * @param mixed $specs
+     * @return $this
+     */
+    public function set($name, $specs)
+    {
+        $this->logics[$name] = is_callable($specs)
+            ? Logic::resolve($name, $specs)
+            : new Logic($name, $specs);
+
+        if($this->logics[$name]->http) {
+            $this->router->add($this->logics[$name]->http, $this->logics[$name]);
+        }
+
+        return $this;
+    }
+
+
+    /**
+     * Merge multiple logics
+     *
+     * @param array $logics
+     * @return $this
+     */
+    public function merge(array $logics)
+    {
+        foreach($logics as $name => $specs) {
+            $this->set($name, $specs);
+        }
+
+        return $this;
     }
 
 

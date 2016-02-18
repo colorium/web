@@ -5,6 +5,7 @@ namespace Colorium\Web;
 use Colorium\Http;
 use Colorium\Routing;
 use Colorium\Runtime;
+use Psr\Log;
 
 class Context extends \stdClass
 {
@@ -23,6 +24,9 @@ class Context extends \stdClass
 
     /** @var Http\Response */
     public $response;
+
+    /** @var Log\LoggerInterface */
+    public $logger;
 
     /** @var callable */
     public $forwarder;
