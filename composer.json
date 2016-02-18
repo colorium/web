@@ -22,7 +22,7 @@
   },
   "autoload": {
     "psr-4": {
-      "Colorium\\Text\\": "/src/Colorium/Web/"
+      "Colorium\\Web\\": "/src/Colorium/Web/"
     }
   }
 }
