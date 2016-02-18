@@ -1,0 +1,28 @@
+{
+  "name": "colorium/web",
+  "type": "library",
+  "description": "Colorium Wep App Package",
+  "homepage": "https://github.com/colorium/web",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Aymeric Assier",
+      "email": "aymeric.assier@gmail.com",
+      "role": "Developer"
+    }
+  ],
+  "require": {
+    "php": ">=5.6",
+    "psr/log": ">=1.0",
+    "colorium/http": "dev-master",
+    "colorium/routing": "dev-master",
+    "colorium/stateful": "dev-master",
+    "colorium/templating": "dev-master",
+    "colorium/runtime": "dev-master"
+  },
+  "autoload": {
+    "psr-4": {
+      "Colorium\\Text\\": "/src/Colorium/Web/"
+    }
+  }
+}
