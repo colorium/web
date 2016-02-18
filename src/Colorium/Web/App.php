@@ -18,7 +18,7 @@ class App extends Rest
      *
      * @param array $logics
      */
-    public function __construct(array $logics)
+    public function __construct(array $logics = [])
     {
         $this->templater = new Templater;
 
