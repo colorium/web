@@ -103,7 +103,7 @@ class Rest extends Kernel
     {
         $this->logger->debug('kernel.context: generate Context instance');
 
-        $request = Request::generate();
+        $request = Request::globals();
         $response = new Response;
         return new Context($request, $response);
     }
