@@ -16,6 +16,9 @@ class Context extends \stdClass
     /** @var Routing\Route */
     public $route;
 
+    /** @var array */
+    public $params = [];
+
     /** @var Logic */
     public $logic;
 
@@ -85,11 +88,14 @@ class Context extends \stdClass
      * Forward to logic
      *
      * @param string $logic name
+     * @param $params
      * @return Context
      */
-    public function forward($logic)
+    public function forward($logic, ...$params)
     {
-         return call_user_func($this->forwarder, clone $this, $logic);
+        $context = clone $this;
+        $context->params = $params;
+        return call_user_func($this->forwarder, $context, $logic);
     }
 
 

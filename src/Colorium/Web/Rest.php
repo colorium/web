@@ -181,6 +181,7 @@ class Rest extends Kernel
 
         // update context
         $context->route = $route;
+        $context->params = $route->params;
         $context->logic = $route->resource;
 
         $this->logger->debug('kernel.route: logic [' . $context->logic->name . '] found for query ' . $query);
@@ -257,7 +258,7 @@ class Rest extends Kernel
         $this->logger->debug('kernel.execute: execute logic');
 
         // prepare params
-        $params = $context->route ? $context->route->params : [];
+        $params = $context->params;
         $params[] = $context;
 
         // execute logic method
