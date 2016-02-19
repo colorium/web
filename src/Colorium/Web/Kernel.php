@@ -69,6 +69,7 @@ abstract class Kernel extends \stdClass
         finally {
             $this->after($context);
             $this->logger->debug('kernel: end (' . number_format(microtime(true) - $start, 4) . 's)');
+            $this->logger->debug('---');
         }
     }
 
