@@ -27,6 +27,26 @@ class App extends Rest
 
 
     /**
+     * Execute logic
+     *
+     * @param Context $context
+     * @return Context
+     */
+    protected function execute(Context $context)
+    {
+        // add tempalter to context
+        $context->templater = $this->templater;
+
+        // prepare templater helpers and globals vars
+        $this->templater->vars['ctx'] = $context;
+        $this->templater->helpers['url'] = [$context, 'url'];
+        $this->templater->helpers['call'] = [$context, 'forward'];
+
+        return parent::execute($context);
+    }
+
+
+    /**
      * Render response
      *
      * @param Context $context
@@ -35,11 +55,6 @@ class App extends Rest
     protected function render(Context $context)
     {
         $this->logger->debug('kernel.process.render: render Response');
-
-        // prepare templater helpers and globals vars
-        $this->templater->vars['ctx'] = $context;
-        $this->templater->helpers['url'] = [$context, 'url'];
-        $this->templater->helpers['call'] = [$context, 'forward'];
 
         // resolve output format
         if($context->response->raw) {
