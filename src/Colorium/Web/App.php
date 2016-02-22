@@ -27,14 +27,17 @@ class App extends Rest
 
 
     /**
-     * Execute logic
+     * Before handler
      *
      * @param Context $context
      * @return Context
      */
-    protected function execute(Context $context)
+    protected function before(Context $context)
     {
-        // add tempalter to context
+        // kernel before handler
+        $context = parent::before($context);
+
+        // add templater to context
         $context->templater = $this->templater;
 
         // prepare templater helpers and globals vars
@@ -42,7 +45,7 @@ class App extends Rest
         $this->templater->helpers['url'] = [$context, 'url'];
         $this->templater->helpers['call'] = [$context, 'forward'];
 
-        return parent::execute($context);
+        return $context;
     }
 
 
@@ -62,14 +65,13 @@ class App extends Rest
             // template
             if($template = $context->logic->html) {
 
+                // render template
                 $vars = $context->response->content;
-                if(!is_array($vars)) {
-                    $vars = (array)$vars;
-                }
-
+                $vars = is_array($vars) ? $vars : (array)$vars;
                 $content = $this->templater->render($template, $vars);
-                $context->response->content = $content;
-                $context->response->format = 'text/html';
+
+                // set html response
+                $context->response = new Response\Html($content);
                 $this->logger->debug('kernel.process.render: template "' . $template . '" compiled');
             }
             // json
@@ -78,6 +80,7 @@ class App extends Rest
                 $this->logger->debug('kernel.process.render: json response generated');
             }
 
+            // remove auto-generated flag
             $context->response->raw = false;
         }
 

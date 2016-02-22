@@ -52,11 +52,8 @@ abstract class Kernel extends \stdClass
         try {
             try {
                 $this->logger->debug('kernel: start');
-                if(!$context) {
-                    $context = $this->context();
-                }
-                $this->before($context);
-                $context->logger = $this->logger;
+                $context = $context ?: $this->context();
+                $context = $this->before($context);
                 return $this->proceed($context);
             }
             catch(HttpException $event) {
@@ -86,8 +83,14 @@ abstract class Kernel extends \stdClass
      * Before handler
      *
      * @param Context $context
+     * @return Context
      */
-    protected function before(Context $context) {}
+    protected function before(Context $context)
+    {
+        $context->logger = $this->logger;
+
+        return $context;
+    }
 
 
     /**

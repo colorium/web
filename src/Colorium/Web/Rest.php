@@ -117,8 +117,7 @@ class Rest extends Kernel
      */
     public function proceed(Context $context)
     {
-        // generate context
-        $context = $context ?: $this->context();
+        // set context forwarder
         $context->forwarder = $context->forwarder ?: [$this, 'forward'];
 
         // processes
@@ -300,6 +299,7 @@ class Rest extends Kernel
                 $this->logger->debug('kernel.render: json response generated');
             }
 
+            // remove auto-generated flag
             $context->response->raw = false;
         }
 
