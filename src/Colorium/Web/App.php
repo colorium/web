@@ -71,7 +71,7 @@ class App extends Rest
                 $content = $this->templater->render($template, $vars);
 
                 // set html response
-                $context->response = new Response\Html($content);
+                $context->response = new Response\Html($content, $context->response->code, $context->response->headers);
                 $this->logger->debug('kernel.process.render: template "' . $template . '" compiled');
             }
             // json
