@@ -83,12 +83,14 @@ class App extends Rest
             // remove auto-generated flag
             $context->response->raw = false;
         }
-
-        // template response
-        // todo
-
-        // redirect response
-        // todo
+        // render template
+        elseif($context->response instanceof Response\Template) {
+            $context->response->content = $this->templater->render($context->response->template, $context->response->vars);
+        }
+        // render redirect
+        elseif($context->response instanceof Response\Redirect and $context->response->uri[0] == '/') {
+            $context->response->uri = $context->request->uri->make($context->response->uri);
+        }
 
         return $context;
     }
