@@ -17,6 +17,9 @@ abstract class Kernel extends \stdClass
     /** @var Log\LoggerInterface */
     public $logger;
 
+    /** @var bool */
+    public $catch = true;
+
 
     /**
      * Init kernel with logger
@@ -33,7 +36,15 @@ abstract class Kernel extends \stdClass
     /**
      * Setup app
      */
-    protected function setup() {}
+    protected function setup()
+    {
+        set_error_handler(function($level, $message, $file = null, $line = null) {
+            $fatal = E_ERROR | E_PARSE | E_CORE_ERROR | E_CORE_WARNING | E_COMPILE_ERROR | E_COMPILE_WARNING;
+            if(($level & $fatal) > 0) {
+                throw new \ErrorException($message, $level, $level, $file, $line);
+            }
+        });
+    }
 
 
     /**
@@ -137,10 +148,13 @@ abstract class Kernel extends \stdClass
     {
         $exception = get_class($error);
         $this->logger->error($error);
-        foreach($this->errors as $class => $callback) {
-            if(is_string($class) and $exception instanceof $class) {
-                $this->logger->debug('kernel.error: ' . $exception . ' raised, has callback');
-                return $context->forward($callback, $error);
+
+        if($this->catch) {
+            foreach($this->errors as $class => $callback) {
+                if(is_string($class) and $error instanceof $class) {
+                    $this->logger->debug('kernel.error: ' . $exception . ' raised, has callback');
+                    return $context->forward($callback, $error);
+                }
             }
         }
 
