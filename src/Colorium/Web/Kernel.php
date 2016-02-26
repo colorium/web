@@ -126,6 +126,7 @@ abstract class Kernel extends \stdClass
     {
         $code = $event->getCode();
         if(isset($this->events[$code])) {
+            $context->response->code = $event->getCode();
             $this->logger->debug('kernel.event: http ' . $code . ' event raised, has callback');
             return $context->forward($this->events[$code], $event);
         }
