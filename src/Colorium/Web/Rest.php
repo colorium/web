@@ -38,22 +38,6 @@ class Rest extends Kernel
 
 
     /**
-     * Get logic by name
-     *
-     * @param string $name
-     * @return Logic
-     */
-    public function logic($name)
-    {
-        if(!isset($this->logics[$name])) {
-            throw new \InvalidArgumentException('Unknown logic [' . $name . ']');
-        }
-
-        return $this->logics[$name];
-    }
-
-
-    /**
      * Add logic
      *
      * @param string $name
@@ -106,6 +90,21 @@ class Rest extends Kernel
 
 
     /**
+     * Setup context before process
+     *
+     * @param Context $context
+     * @return Context
+     */
+    protected function before(Context $context)
+    {
+        // set context forwarder
+        $context->forwarder = $context->forwarder ?: [$this, 'forward'];
+
+        return parent::before($context);
+    }
+
+
+    /**
      * Handle context
      *
      * @param Context $context
@@ -117,10 +116,6 @@ class Rest extends Kernel
      */
     public function proceed(Context $context)
     {
-        // set context forwarder
-        $context->forwarder = $context->forwarder ?: [$this, 'forward'];
-
-        // processes
         $context = $this->route($context);
         $context = $this->resolve($context);
         $context = $this->guard($context);
@@ -140,10 +135,18 @@ class Rest extends Kernel
      */
     public function forward(Context $context, $logic)
     {
+        // resolve logic instance
         if(!$logic instanceof Logic) {
-            $logic = is_callable($logic)
-                ? Logic::resolve(uniqid(), $logic) // ephemeral runtime logic
-                : $this->logic($logic);            // stored logic
+
+            // stored logic
+            if(is_string($logic) and isset($this->logics[$logic])) {
+                $logic = $this->logics[$logic];
+            }
+            // resolve callback
+            else {
+                $name = ($context->error instanceof HttpException) ? $context->error->getCode() : uniqid();
+                $logic = Logic::resolve($name, $logic);
+            }
         }
 
         $context->logic = $logic;
@@ -165,7 +168,7 @@ class Rest extends Kernel
 
         // logic already specified
         if($context->logic) {
-            $this->logger->debug('kernel.route: logic [' . $context->logic->name . '] already provided, skip routing');
+            $this->logger->debug('kernel.route: forward to #' . $context->logic->name . ', skip routing');
             return $context;
         }
 
@@ -183,7 +186,7 @@ class Rest extends Kernel
         $context->params = $route->params;
         $context->logic = $route->resource;
 
-        $this->logger->debug('kernel.route: logic [' . $context->logic->name . '] found for query ' . $query);
+        $this->logger->debug('kernel.route: #' . $context->logic->name . ' found for query ' . $query);
 
         return $context;
     }
@@ -205,13 +208,13 @@ class Rest extends Kernel
         if(!$context->logic->method instanceof \Closure and !$context->logic->method instanceof Invokable) {
             $invokable = Resolver::of($context->logic->method);
             if(!$invokable) {
-                throw new NotImplementedException('Invalid method for logic [' . $context->logic->name . ']');
+                throw new NotImplementedException('Invalid method for #' . $context->logic->name);
             }
 
             $context->logic->method = $invokable;
             $context->logic->override($invokable->annotations());
 
-            $this->logger->debug('kernel.resolve: logic [' . $context->logic->name . '] method resolved');
+            $this->logger->debug('kernel.resolve: #' . $context->logic->name . ' method resolved');
         }
 
         return $context;
@@ -232,7 +235,7 @@ class Rest extends Kernel
 
         // 401
         if($context->logic->access and $context->logic->access > Auth::rank()) {
-            throw new AccessDeniedException('Access denied (logic: ' . $context->logic->access . ', user: ' . $context->logic->access . ')');
+            throw new AccessDeniedException('Access denied (#' . $context->logic->name . ': ' . $context->logic->access . ', user: ' . $context->logic->access . ')');
         }
 
         // set user
@@ -240,7 +243,7 @@ class Rest extends Kernel
             $context->user = Auth::user();
         }
 
-        $this->logger->debug('kernel.guard: access granted (logic: ' . $context->logic->access . ', user: ' . $context->logic->access . ')');
+        $this->logger->debug('kernel.guard: access granted (#' . $context->logic->name . ': ' . $context->logic->access . ', user: ' . $context->logic->access . ')');
 
         return $context;
     }
@@ -262,7 +265,7 @@ class Rest extends Kernel
 
         // execute logic method
         $result = call_user_func_array($context->logic->method, $params);
-        $this->logger->debug('kernel.execute: logic [' . $context->logic->name . '] executed');
+        $this->logger->debug('kernel.execute: #' . $context->logic->name . ' executed');
 
         // user response
         if($result instanceof Response) {

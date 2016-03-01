@@ -28,11 +28,17 @@ class Context extends \stdClass
     /** @var Http\Response */
     public $response;
 
+    /** @var \Exception */
+    public $error;
+
     /** @var Log\LoggerInterface */
     public $logger;
 
     /** @var callable */
     public $forwarder;
+
+    /** @var int */
+    public $depth = 0;
 
 
     /**
@@ -94,6 +100,7 @@ class Context extends \stdClass
     public function forward($logic, ...$params)
     {
         $context = clone $this;
+        $context->depth++;
         $context->params = $params;
         return call_user_func($this->forwarder, $context, $logic);
     }

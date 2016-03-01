@@ -77,7 +77,6 @@ abstract class Kernel extends \stdClass
         finally {
             $this->after($context);
             $this->logger->debug('kernel: end (' . number_format(microtime(true) - $start, 4) . 's)');
-            $this->logger->debug('---');
         }
     }
 
@@ -91,13 +90,14 @@ abstract class Kernel extends \stdClass
 
 
     /**
-     * Before handler
+     * Setup context before process
      *
      * @param Context $context
      * @return Context
      */
     protected function before(Context $context)
     {
+        // set context logger
         $context->logger = $this->logger;
 
         return $context;
@@ -110,7 +110,7 @@ abstract class Kernel extends \stdClass
      * @param Context $context
      * @return Context
      */
-    abstract public function proceed(Context $context);
+    abstract protected function proceed(Context $context);
 
 
     /**
@@ -126,6 +126,7 @@ abstract class Kernel extends \stdClass
     {
         $code = $event->getCode();
         if(isset($this->events[$code])) {
+            $context->error = $event;
             $context->response->code = $event->getCode();
             $this->logger->debug('kernel.event: http ' . $code . ' event raised, has callback');
             return $context->forward($this->events[$code], $event);
@@ -153,6 +154,7 @@ abstract class Kernel extends \stdClass
         if($this->catch) {
             foreach($this->errors as $class => $callback) {
                 if(is_string($class) and $error instanceof $class) {
+                    $context->error = $error;
                     $this->logger->debug('kernel.error: ' . $exception . ' raised, has callback');
                     return $context->forward($callback, $error);
                 }
